@@ -1,0 +1,38 @@
+services:
+  recallify-db-postgres:
+    image: postgres:16.1
+    restart: always
+    container_name: recallify-db-postgres
+    environment:
+      POSTGRES_USER: recallify_user
+      POSTGRES_PASSWORD: recallify_password
+      POSTGRES_DB: recallify_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - recallify_db_data:/var/lib/postgresql/data
+    networks:
+      - recallify-network
+  recallify-catalog-service:
+    build:
+      context: ./recallify-catalog-service/recallify
+      dockerfile: Dockerfile
+    image: recallify-catalog-service:latest
+    environment:
+      DATABASE_URL: postgres://recallify_user:recallify_password@recallify-db-postgres:5432/recallify_db?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      recallify-db-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - recallify-network
+
+volumes:
+  recallify_db_data:
+    driver: local
+
+networks:
+  recallify-network:
+    driver: bridge
